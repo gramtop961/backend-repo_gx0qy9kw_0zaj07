@@ -1,8 +1,13 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional
 
-app = FastAPI()
+from database import create_document
+from schemas import Delegate
+
+app = FastAPI(title="Rhetorix MUN API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,13 +17,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI Backend!"}
+    return {"message": "Rhetorix MUN Backend Running"}
+
 
 @app.get("/api/hello")
 def hello():
-    return {"message": "Hello from the backend API!"}
+    return {"message": "Hello from the Rhetorix backend API!"}
+
 
 @app.get("/test")
 def test_database():
@@ -63,6 +71,86 @@ def test_database():
     response["database_name"] = "✅ Set" if os.getenv("DATABASE_NAME") else "❌ Not Set"
     
     return response
+
+
+# Public config for the event
+class EventConfig(BaseModel):
+    name: str
+    date: str
+    venue: str
+    registration_open: bool
+    contact_email: str
+
+
+@app.get("/api/config", response_model=EventConfig)
+def get_config():
+    return EventConfig(
+        name="Rhetorix Model United Nations",
+        date="2025-02-22 to 2025-02-23",
+        venue="To be announced",
+        registration_open=True,
+        contact_email="secretariat@rhetorixmun.org",
+    )
+
+
+# Committees listing
+class Committee(BaseModel):
+    code: str
+    name: str
+    description: str
+    topics: List[str]
+
+
+@app.get("/api/committees", response_model=List[Committee])
+def get_committees():
+    return [
+        Committee(
+            code="UNGA",
+            name="United Nations General Assembly",
+            description="Global deliberative body addressing pressing international issues.",
+            topics=[
+                "Cybersecurity and State Sovereignty",
+                "Climate-Induced Migration and International Responsibility"
+            ],
+        ),
+        Committee(
+            code="UNHRC",
+            name="United Nations Human Rights Council",
+            description="Protecting and promoting human rights around the world.",
+            topics=[
+                "Digital Surveillance and Privacy Rights",
+                "Human Rights of Refugees and Asylum Seekers"
+            ],
+        ),
+        Committee(
+            code="UNSC",
+            name="United Nations Security Council",
+            description="Maintenance of international peace and security.",
+            topics=[
+                "Security Implications of Autonomous Weapons",
+                "Stability in the South China Sea"
+            ],
+        ),
+        Committee(
+            code="IP",
+            name="International Press",
+            description="Journalistic coverage, interviews and real-time updates during the conference.",
+            topics=[
+                "Press ethics in conflict reporting",
+                "Combating misinformation during crises"
+            ],
+        ),
+    ]
+
+
+# Registration endpoint
+@app.post("/api/registrations")
+def create_registration(payload: Delegate):
+    try:
+        doc_id = create_document("delegate", payload)
+        return {"status": "success", "id": doc_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

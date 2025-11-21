@@ -11,10 +11,10 @@ Model name is converted to lowercase for the collection name:
 - BlogPost -> "blogs" collection
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List, Literal
 
-# Example schemas (replace with your own):
+# Example schemas (kept for reference):
 
 class User(BaseModel):
     """
@@ -22,7 +22,7 @@ class User(BaseModel):
     Collection name: "user" (lowercase of class name)
     """
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
+    email: EmailStr = Field(..., description="Email address")
     address: str = Field(..., description="Address")
     age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
     is_active: bool = Field(True, description="Whether user is active")
@@ -38,11 +38,20 @@ class Product(BaseModel):
     category: str = Field(..., description="Product category")
     in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+# Rhetorix MUN schemas
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Delegate(BaseModel):
+    """
+    Delegate registrations for Rhetorix MUN
+    Collection name: "delegate"
+    """
+    full_name: str = Field(..., min_length=2, description="Delegate's full name")
+    email: EmailStr = Field(..., description="Contact email")
+    phone: str = Field(..., min_length=7, max_length=20, description="Contact phone number")
+    institution: str = Field(..., description="School/College/Organization")
+    grade_or_year: Optional[str] = Field(None, description="Grade/Year")
+    committee: str = Field(..., description="Preferred committee")
+    role: Literal["Delegate", "International Press", "Executive Board"] = Field("Delegate")
+    country_preferences: Optional[List[str]] = Field(default=None, description="Preferred countries in order")
+    experience: Optional[str] = Field(None, description="Past MUN experience (optional)")
+    notes: Optional[str] = Field(None, description="Any additional notes or accommodations")
